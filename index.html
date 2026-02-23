@@ -25,61 +25,33 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
-        /* Custom Range Slider for Progress Bar */
+        /* Custom Range Slider */
         input[type=range] {
             /* stylelint-disable-next-line property-no-vendor-prefix */
             -webkit-appearance: none;
             width: 100%;
             background: transparent;
         }
-        input[type=range]:focus {
-            outline: none;
-        }
+        input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: #4b5563;
-            border-radius: 9999px;
+            width: 100%; height: 6px; cursor: pointer; background: #4b5563; border-radius: 9999px;
         }
         input[type=range]::-webkit-slider-thumb {
-            height: 14px;
-            width: 14px;
-            border-radius: 50%;
-            background: #8b5cf6; 
+            height: 14px; width: 14px; border-radius: 50%; background: #8b5cf6; 
             cursor: pointer;
             /* stylelint-disable-next-line property-no-vendor-prefix */
             -webkit-appearance: none;
-            margin-top: -4px;
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-            transition: transform 0.1s;
+            margin-top: -4px; box-shadow: 0 0 10px rgba(139, 92, 246, 0.5); transition: transform 0.1s;
         }
-        input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
-        .playlist-item {
-            transition: all 0.2s ease;
-        }
-        .playlist-item:hover {
-            background: rgba(139, 92, 246, 0.1);
-        }
-        .playlist-item.active {
-            background: rgba(139, 92, 246, 0.2);
-            border-left: 4px solid #8b5cf6;
-        }
+        .playlist-item { transition: all 0.2s ease; }
+        .playlist-item:hover { background: rgba(139, 92, 246, 0.1); }
+        .playlist-item.active { background: rgba(139, 92, 246, 0.2); border-left: 4px solid #8b5cf6; }
 
-        .control-btn {
-            transition: all 0.2s;
-            color: #9ca3af;
-        }
-        .control-btn:hover {
-            color: #f3f4f6;
-            transform: scale(1.1);
-        }
-        .control-btn.active {
-            color: #8b5cf6;
-        }
+        .control-btn { transition: all 0.2s; color: #9ca3af; }
+        .control-btn:hover { color: #f3f4f6; transform: scale(1.1); }
+        .control-btn.active { color: #8b5cf6; }
     </style>
 </head>
 <body class="flex items-center justify-center p-4 sm:p-8">
@@ -96,9 +68,11 @@
                 <i data-lucide="music" class="text-gray-500 w-6 h-6"></i>
             </header>
 
-            <div class="aspect-square w-full max-w-[280px] mx-auto rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-inner flex items-center justify-center mb-8 border border-gray-700 relative overflow-hidden group">
-                <div class="absolute inset-0 bg-purple-600 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
-                <i data-lucide="speaker" class="text-gray-600 w-24 h-24 group-hover:scale-110 transition-transform duration-500"></i>
+            <div class="aspect-square w-full max-w-[280px] mx-auto rounded-2xl bg-gray-900 shadow-inner flex items-center justify-center mb-8 border border-gray-700 relative overflow-hidden">
+                <canvas id="visualizer" class="w-full h-full rounded-2xl"></canvas>
+                <div id="vis-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300">
+                    <i data-lucide="activity" class="text-gray-700 w-24 h-24"></i>
+                </div>
             </div>
 
             <div class="text-center mb-6">
@@ -139,53 +113,59 @@
         </div>
     </div>
 
-    <audio id="audio-player"></audio>
+    <audio id="audio-player" crossorigin="anonymous"></audio>
 
     <script>
-        // Initialize Icons
         lucide.createIcons();
 
-        // --- YOUR AUDIO DATA GOES HERE (Mix MP3 and M4A freely) ---
+        // --- YOUR AUDIO DATA GOES HERE ---
         const playlist = [
             { id: 0, title: "As alive as you need me to be", originalArtist: "NIN", src: "AsAlive.m4a" },
             { id: 1, title: "Be with you", originalArtist: "Kimiko", src: "BeWithU.m4a" },
-            { id: 2, title: "Now and then", originalArtist: "Akera Sky", src: "NowAndThen.m4a" }
+            { id: 2, title: "Now and then", originalArtist: "Akera Sky", src: "NowAndThen.mp3" }
         ];
 
-        // --- STATE VARIABLES ---
         let currentTrackIndex = 0;
         let isPlaying = false;
         let isShuffle = false;
-        let repeatMode = 1; // 0 = Off, 1 = Repeat All, 2 = Repeat One
+        let repeatMode = 1; 
 
-        // --- DOM ELEMENTS ---
         const audio = document.getElementById('audio-player');
         const playBtn = document.getElementById('btn-play');
         const prevBtn = document.getElementById('btn-prev');
         const nextBtn = document.getElementById('btn-next');
         const shuffleBtn = document.getElementById('btn-shuffle');
         const repeatBtn = document.getElementById('btn-repeat');
-        
         const playIcon = document.getElementById('play-icon');
         const pauseIcon = document.getElementById('pause-icon');
-        
         const progressBar = document.getElementById('progress-bar');
         const currentTimeEl = document.getElementById('current-time');
         const totalTimeEl = document.getElementById('total-time');
-        
         const titleEl = document.getElementById('current-title');
         const artistEl = document.getElementById('current-artist');
         const playlistContainer = document.getElementById('playlist-container');
+        
+        // Visualizer Elements
+        const canvas = document.getElementById('visualizer');
+        const canvasCtx = canvas.getContext('2d');
+        const visPlaceholder = document.getElementById('vis-placeholder');
+        
+        let audioCtx;
+        let analyser;
+        let source;
+        let isVisualizerInitialized = false;
 
-        // --- INITIALIZATION ---
         function init() {
             document.getElementById('track-count').innerText = `${playlist.length} Tracks`;
             renderPlaylist();
             loadTrack(currentTrackIndex, false);
             updateControlStyles();
+            
+            // Set canvas exact internal dimensions to match the display size roughly
+            canvas.width = 300;
+            canvas.height = 300;
         }
 
-        // --- PLAYLIST LOGIC ---
         function renderPlaylist() {
             playlistContainer.innerHTML = '';
             playlist.forEach((track, index) => {
@@ -197,7 +177,7 @@
                     <div class="w-8 text-sm font-mono opacity-50">${index + 1}</div>
                     <div class="flex-1 min-w-0">
                         <div class="text-white font-bold truncate">${track.title}</div>
-                        <div class="text-xs truncate text-gray-500">Orig. ${track.originalArtist} • <span class="uppercase text-purple-400/50">${track.src.split('.').pop()}</span></div>
+                        <div class="text-xs truncate text-gray-500">Orig. ${track.originalArtist}</div>
                     </div>
                     <i data-lucide="play-circle" class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                 `;
@@ -223,7 +203,59 @@
             });
         }
 
-        // --- AUDIO CONTROL LOGIC ---
+        // --- AUDIO VISUALIZER SETUP ---
+        function initVisualizer() {
+            if (isVisualizerInitialized) return;
+            
+            // Browsers require audio context to be created after a user gesture (like clicking play)
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            analyser = audioCtx.createAnalyser();
+            
+            source = audioCtx.createMediaElementSource(audio);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            
+            analyser.fftSize = 128; // Determines how many bars we get
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            function draw() {
+                requestAnimationFrame(draw);
+                
+                if(!isPlaying) return; // Save CPU when paused
+                
+                analyser.getByteFrequencyData(dataArray);
+                
+                // Clear canvas with a very slight fade effect
+                canvasCtx.fillStyle = 'rgba(17, 24, 39, 0.2)'; 
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const barWidth = (canvas.width / bufferLength) * 2;
+                let barHeight;
+                let x = 0;
+                
+                for(let i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i];
+                    
+                    // Creates a cool gradient from purple to pink based on frequency
+                    const r = barHeight + (25 * (i/bufferLength));
+                    const g = 92;
+                    const b = 246;
+                    
+                    canvasCtx.fillStyle = `rgb(${r},${g},${b})`;
+                    
+                    // Draw bars from the bottom up
+                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    
+                    x += barWidth + 1;
+                }
+            }
+            
+            draw();
+            isVisualizerInitialized = true;
+        }
+
         function loadTrack(index, playInstantly = true) {
             const track = playlist[index];
             audio.src = track.src;
@@ -240,10 +272,18 @@
         }
 
         function playAudio() {
+            initVisualizer(); // Initialize the EQ bars on the first play click
+            if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            
             audio.play();
             isPlaying = true;
             playIcon.classList.add('hidden');
             pauseIcon.classList.remove('hidden');
+            visPlaceholder.classList.add('opacity-0'); // Hide the placeholder icon
+            
+            // Clear canvas instantly when playing starts so it doesn't look messy
+            canvasCtx.fillStyle = 'rgb(17, 24, 39)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         function pauseAudio() {
@@ -251,6 +291,7 @@
             isPlaying = false;
             playIcon.classList.remove('hidden');
             pauseIcon.classList.add('hidden');
+            visPlaceholder.classList.remove('opacity-0'); // Show the placeholder icon again
         }
 
         function togglePlay() {
@@ -267,45 +308,33 @@
                 currentTrackIndex = newIndex;
             } else {
                 currentTrackIndex++;
-                if (currentTrackIndex >= playlist.length) {
-                    currentTrackIndex = 0; // Loop back to start
-                }
+                if (currentTrackIndex >= playlist.length) currentTrackIndex = 0;
             }
             loadTrack(currentTrackIndex, true);
         }
 
         function playPrev() {
             if (audio.currentTime > 3) {
-                audio.currentTime = 0; // If playing for >3s, just restart track
+                audio.currentTime = 0;
             } else {
                 currentTrackIndex--;
-                if (currentTrackIndex < 0) {
-                    currentTrackIndex = playlist.length - 1;
-                }
+                if (currentTrackIndex < 0) currentTrackIndex = playlist.length - 1;
                 loadTrack(currentTrackIndex, true);
             }
         }
 
-        // --- END OF TRACK LOGIC (Looping) ---
         audio.addEventListener('ended', () => {
             if (repeatMode === 2) {
-                // Repeat One
                 audio.currentTime = 0;
                 playAudio();
             } else if (repeatMode === 1 || isShuffle) {
-                // Repeat All or Shuffle
                 playNext();
             } else {
-                // Repeat Off
-                if (currentTrackIndex < playlist.length - 1) {
-                    playNext();
-                } else {
-                    pauseAudio();
-                }
+                if (currentTrackIndex < playlist.length - 1) playNext();
+                else pauseAudio();
             }
         });
 
-        // --- EVENT LISTENERS ---
         playBtn.addEventListener('click', togglePlay);
         nextBtn.addEventListener('click', playNext);
         prevBtn.addEventListener('click', playPrev);
@@ -316,7 +345,7 @@
         });
 
         repeatBtn.addEventListener('click', () => {
-            repeatMode = (repeatMode + 1) % 3; // Cycles 0, 1, 2
+            repeatMode = (repeatMode + 1) % 3;
             updateControlStyles();
         });
 
@@ -338,7 +367,6 @@
             lucide.createIcons();
         }
 
-        // --- PROGRESS BAR LOGIC ---
         audio.addEventListener('timeupdate', () => {
             if (audio.duration) {
                 const progressPercent = (audio.currentTime / audio.duration) * 100;
@@ -355,7 +383,6 @@
             }
         });
 
-        // Helper: Format seconds to M:SS
         function formatTime(seconds) {
             if (isNaN(seconds)) return "0:00";
             const mins = Math.floor(seconds / 60);
@@ -363,7 +390,6 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
 
-        // Start
         init();
     </script>
 
@@ -372,6 +398,6 @@
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </body>
-
 </html>
+
 
