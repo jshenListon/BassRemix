@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr. Shen's Bass Vault</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
+            color: #f3f4f6;
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(31, 41, 55, 0.7);
+            /* stylelint-disable-next-line property-no-vendor-prefix */
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Range Slider for Progress Bar */
+        input[type=range] {
+            /* stylelint-disable-next-line property-no-vendor-prefix */
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #4b5563;
+            border-radius: 9999px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #8b5cf6; 
+            cursor: pointer;
+            /* stylelint-disable-next-line property-no-vendor-prefix */
+            -webkit-appearance: none;
+            margin-top: -4px;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .playlist-item {
+            transition: all 0.2s ease;
+        }
+        .playlist-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+        .playlist-item.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .control-btn {
+            transition: all 0.2s;
+            color: #9ca3af;
+        }
+        .control-btn:hover {
+            color: #f3f4f6;
+            transform: scale(1.1);
+        }
+        .control-btn.active {
+            color: #8b5cf6;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 sm:p-8">
+
+    <div class="glass-panel w-full max-w-4xl rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl">
+        
+        <div class="w-full md:w-1/2 p-8 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-700">
+            
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-white uppercase">Bass Vault</h1>
+                    <p class="text-sm text-purple-400 font-medium tracking-widest">AUDIO ARCHIVE</p>
+                </div>
+                <i data-lucide="music" class="text-gray-500 w-6 h-6"></i>
+            </header>
+
+            <div class="aspect-square w-full max-w-[280px] mx-auto rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-inner flex items-center justify-center mb-8 border border-gray-700 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-purple-600 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+                <i data-lucide="speaker" class="text-gray-600 w-24 h-24 group-hover:scale-110 transition-transform duration-500"></i>
+            </div>
+
+            <div class="text-center mb-6">
+                <h2 id="current-title" class="text-2xl font-bold text-white mb-1 truncate">Select a track</h2>
+                <p id="current-artist" class="text-gray-400 text-sm truncate">---</p>
+            </div>
+
+            <div class="mb-6">
+                <input type="range" id="progress-bar" value="0" min="0" max="100" class="w-full mb-2">
+                <div class="flex justify-between text-xs text-gray-500 font-mono">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center gap-6">
+                <button id="btn-shuffle" class="control-btn" title="Shuffle"><i data-lucide="shuffle" class="w-5 h-5"></i></button>
+                <button id="btn-prev" class="control-btn"><i data-lucide="skip-back" class="w-8 h-8 text-white"></i></button>
+                
+                <button id="btn-play" class="bg-purple-600 hover:bg-purple-500 text-white rounded-full p-4 shadow-[0_0_15px_rgba(139,92,246,0.5)] transition-all transform hover:scale-105">
+                    <i data-lucide="play" id="play-icon" class="w-8 h-8 fill-current ml-1"></i>
+                    <i data-lucide="pause" id="pause-icon" class="w-8 h-8 fill-current hidden"></i>
+                </button>
+                
+                <button id="btn-next" class="control-btn"><i data-lucide="skip-forward" class="w-8 h-8 text-white"></i></button>
+                <button id="btn-repeat" class="control-btn" title="Repeat Mode"><i data-lucide="repeat" class="w-5 h-5"></i></button>
+            </div>
+        </div>
+
+        <div class="w-full md:w-1/2 bg-gray-900/50 flex flex-col h-[600px] md:h-auto">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/80">
+                <h3 class="font-bold text-gray-300 tracking-wider uppercase text-sm">Tracklist</h3>
+                <span id="track-count" class="text-xs bg-gray-800 text-purple-400 px-3 py-1 rounded-full font-bold">0 Tracks</span>
+            </div>
+            
+            <div id="playlist-container" class="flex-1 overflow-y-auto p-2 scrollbar-hide">
+                </div>
+        </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // --- YOUR AUDIO DATA GOES HERE (Mix MP3 and M4A freely) ---
+        const playlist = [
+            { id: 0, title: "Chill Rhythm (Bass Cover)", originalArtist: "Unknown", src: "chill_rhythm_bass.mp3" },
+            { id: 1, title: "Funky Grooves", originalArtist: "The Standards", src: "track2.m4a" },
+            { id: 2, title: "Slap Bass Practice", originalArtist: "Original", src: "track3.mp3" },
+            { id: 3, title: "Smooth Jazz Walk", originalArtist: "Night Café", src: "track4.m4a" }
+        ];
+
+        // --- STATE VARIABLES ---
+        let currentTrackIndex = 0;
+        let isPlaying = false;
+        let isShuffle = false;
+        let repeatMode = 1; // 0 = Off, 1 = Repeat All, 2 = Repeat One
+
+        // --- DOM ELEMENTS ---
+        const audio = document.getElementById('audio-player');
+        const playBtn = document.getElementById('btn-play');
+        const prevBtn = document.getElementById('btn-prev');
+        const nextBtn = document.getElementById('btn-next');
+        const shuffleBtn = document.getElementById('btn-shuffle');
+        const repeatBtn = document.getElementById('btn-repeat');
+        
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        
+        const progressBar = document.getElementById('progress-bar');
+        const currentTimeEl = document.getElementById('current-time');
+        const totalTimeEl = document.getElementById('total-time');
+        
+        const titleEl = document.getElementById('current-title');
+        const artistEl = document.getElementById('current-artist');
+        const playlistContainer = document.getElementById('playlist-container');
+
+        // --- INITIALIZATION ---
+        function init() {
+            document.getElementById('track-count').innerText = `${playlist.length} Tracks`;
+            renderPlaylist();
+            loadTrack(currentTrackIndex, false);
+            updateControlStyles();
+        }
+
+        // --- PLAYLIST LOGIC ---
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            playlist.forEach((track, index) => {
+                const div = document.createElement('div');
+                div.className = `playlist-item flex items-center p-4 mb-2 rounded-xl cursor-pointer text-gray-400 border-l-4 border-transparent group`;
+                if(index === currentTrackIndex) div.classList.add('active');
+                
+                div.innerHTML = `
+                    <div class="w-8 text-sm font-mono opacity-50">${index + 1}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-white font-bold truncate">${track.title}</div>
+                        <div class="text-xs truncate text-gray-500">Orig. ${track.originalArtist} • <span class="uppercase text-purple-400/50">${track.src.split('.').pop()}</span></div>
+                    </div>
+                    <i data-lucide="play-circle" class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                `;
+                
+                div.onclick = () => {
+                    currentTrackIndex = index;
+                    loadTrack(currentTrackIndex, true);
+                };
+                playlistContainer.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function updatePlaylistHighlight() {
+            const items = playlistContainer.querySelectorAll('.playlist-item');
+            items.forEach((item, index) => {
+                if(index === currentTrackIndex) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        // --- AUDIO CONTROL LOGIC ---
+        function loadTrack(index, playInstantly = true) {
+            const track = playlist[index];
+            audio.src = track.src;
+            titleEl.innerText = track.title;
+            artistEl.innerText = `Orig. ${track.originalArtist}`;
+            
+            updatePlaylistHighlight();
+            
+            if (playInstantly) {
+                playAudio();
+            } else {
+                pauseAudio();
+            }
+        }
+
+        function playAudio() {
+            audio.play();
+            isPlaying = true;
+            playIcon.classList.add('hidden');
+            pauseIcon.classList.remove('hidden');
+        }
+
+        function pauseAudio() {
+            audio.pause();
+            isPlaying = false;
+            playIcon.classList.remove('hidden');
+            pauseIcon.classList.add('hidden');
+        }
+
+        function togglePlay() {
+            if (isPlaying) pauseAudio();
+            else playAudio();
+        }
+
+        function playNext() {
+            if (isShuffle) {
+                let newIndex = currentTrackIndex;
+                while (newIndex === currentTrackIndex && playlist.length > 1) {
+                    newIndex = Math.floor(Math.random() * playlist.length);
+                }
+                currentTrackIndex = newIndex;
+            } else {
+                currentTrackIndex++;
+                if (currentTrackIndex >= playlist.length) {
+                    currentTrackIndex = 0; // Loop back to start
+                }
+            }
+            loadTrack(currentTrackIndex, true);
+        }
+
+        function playPrev() {
+            if (audio.currentTime > 3) {
+                audio.currentTime = 0; // If playing for >3s, just restart track
+            } else {
+                currentTrackIndex--;
+                if (currentTrackIndex < 0) {
+                    currentTrackIndex = playlist.length - 1;
+                }
+                loadTrack(currentTrackIndex, true);
+            }
+        }
+
+        // --- END OF TRACK LOGIC (Looping) ---
+        audio.addEventListener('ended', () => {
+            if (repeatMode === 2) {
+                // Repeat One
+                audio.currentTime = 0;
+                playAudio();
+            } else if (repeatMode === 1 || isShuffle) {
+                // Repeat All or Shuffle
+                playNext();
+            } else {
+                // Repeat Off
+                if (currentTrackIndex < playlist.length - 1) {
+                    playNext();
+                } else {
+                    pauseAudio();
+                }
+            }
+        });
+
+        // --- EVENT LISTENERS ---
+        playBtn.addEventListener('click', togglePlay);
+        nextBtn.addEventListener('click', playNext);
+        prevBtn.addEventListener('click', playPrev);
+
+        shuffleBtn.addEventListener('click', () => {
+            isShuffle = !isShuffle;
+            updateControlStyles();
+        });
+
+        repeatBtn.addEventListener('click', () => {
+            repeatMode = (repeatMode + 1) % 3; // Cycles 0, 1, 2
+            updateControlStyles();
+        });
+
+        function updateControlStyles() {
+            if (isShuffle) shuffleBtn.classList.add('active', 'text-purple-400');
+            else shuffleBtn.classList.remove('active', 'text-purple-400');
+
+            repeatBtn.classList.remove('text-purple-400', 'text-purple-600');
+            if (repeatMode === 1) {
+                repeatBtn.classList.add('active', 'text-purple-400');
+                repeatBtn.innerHTML = '<i data-lucide="repeat" class="w-5 h-5"></i>';
+            } else if (repeatMode === 2) {
+                repeatBtn.classList.add('active', 'text-purple-600');
+                repeatBtn.innerHTML = '<i data-lucide="repeat-1" class="w-5 h-5"></i>';
+            } else {
+                repeatBtn.classList.remove('active');
+                repeatBtn.innerHTML = '<i data-lucide="repeat" class="w-5 h-5"></i>';
+            }
+            lucide.createIcons();
+        }
+
+        // --- PROGRESS BAR LOGIC ---
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const progressPercent = (audio.currentTime / audio.duration) * 100;
+                progressBar.value = progressPercent;
+                currentTimeEl.innerText = formatTime(audio.currentTime);
+                totalTimeEl.innerText = formatTime(audio.duration);
+            }
+        });
+
+        progressBar.addEventListener('input', (e) => {
+            if (audio.duration) {
+                const seekTime = (e.target.value / 100) * audio.duration;
+                audio.currentTime = seekTime;
+            }
+        });
+
+        // Helper: Format seconds to M:SS
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        // Start
+        init();
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</body>
+</html>
