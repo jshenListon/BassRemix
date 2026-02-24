@@ -3,113 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mr. Shen's Bass Vault</title>
+    <title>Bass Remix by SHN</title>
+    
+    <link rel="stylesheet" href="/style.css">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'term-bg': '#050505',
+                        'term-text': '#00ff41',
+                        'term-card': '#111111',
+                        'term-border': '#333333',
+                        'term-hover': '#003300'
+                    },
+                    fontFamily: {
+                        'mono': ['"Courier New"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
+        /* Override Tailwind body to ensure style.css compatibility */
         body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
-            color: #f3f4f6;
+            background-color: var(--bg, #050505);
+            color: var(--text, #00ff41);
+            font-family: 'Courier New', monospace;
+            padding: 0;
+            margin: 0;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
         }
 
-        .glass-panel {
-            background: rgba(31, 41, 55, 0.7);
-            /* stylelint-disable-next-line property-no-vendor-prefix */
-            -webkit-backdrop-filter: blur(12px);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
+        a { text-decoration: none; color: inherit; }
 
-        /* Custom Range Slider */
+        /* Terminal Custom Range Slider */
         input[type=range] {
-            /* stylelint-disable-next-line property-no-vendor-prefix */
             -webkit-appearance: none;
             width: 100%;
             background: transparent;
         }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; cursor: pointer; background: #4b5563; border-radius: 9999px;
+            width: 100%; height: 4px; cursor: pointer; background: var(--border, #333); 
         }
         input[type=range]::-webkit-slider-thumb {
-            height: 14px; width: 14px; border-radius: 50%; background: #8b5cf6; 
+            height: 16px; width: 8px; background: var(--text, #00ff41); /* Blocky terminal cursor look */
             cursor: pointer;
-            /* stylelint-disable-next-line property-no-vendor-prefix */
             -webkit-appearance: none;
-            margin-top: -4px; box-shadow: 0 0 10px rgba(139, 92, 246, 0.5); transition: transform 0.1s;
+            margin-top: -6px; 
+            transition: transform 0.1s;
         }
-        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
 
-        .playlist-item { transition: all 0.2s ease; }
-        .playlist-item:hover { background: rgba(139, 92, 246, 0.1); }
-        .playlist-item.active { background: rgba(139, 92, 246, 0.2); border-left: 4px solid #8b5cf6; }
+        .playlist-item { 
+            transition: 0.3s; 
+            background: var(--card-bg, #111);
+            border: 1px solid var(--border, #333);
+        }
+        .playlist-item:hover { 
+            background: var(--term-hover, #003300); 
+            border-color: var(--text, #00ff41); 
+            transform: translateX(5px);
+        }
+        .playlist-item.active { 
+            background: var(--term-hover, #003300); 
+            border-color: var(--text, #00ff41); 
+            border-left-width: 4px;
+        }
 
-        .control-btn { transition: all 0.2s; color: #9ca3af; }
-        .control-btn:hover { color: #f3f4f6; transform: scale(1.1); }
-        .control-btn.active { color: #8b5cf6; }
+        .control-btn { transition: all 0.2s; color: #888; }
+        .control-btn:hover { color: var(--text, #00ff41); transform: scale(1.1); }
+        .control-btn.active { color: var(--text, #00ff41); text-shadow: 0 0 8px rgba(0,255,65,0.5); }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="flex items-center justify-center p-4 sm:p-8">
+<body class="p-4 sm:p-8">
 
-    <div class="glass-panel w-full max-w-4xl rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl">
-        
-        <div class="w-full md:w-1/2 p-8 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-700">
+    <div class="flex-grow flex items-center justify-center w-full max-w-5xl mx-auto">
+        <div class="w-full rounded-none flex flex-col md:flex-row border border-term-border bg-term-card md:h-[650px] shadow-[0_0_20px_rgba(0,255,65,0.05)]">
             
-            <header class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-2xl font-black tracking-tight text-white uppercase">Bass Vault</h1>
-                    <p class="text-sm text-purple-400 font-medium tracking-widest">AUDIO ARCHIVE</p>
-                </div>
-                <i data-lucide="music" class="text-gray-500 w-6 h-6"></i>
-            </header>
-
-            <div class="aspect-square w-full max-w-[280px] mx-auto rounded-2xl bg-gray-900 shadow-inner flex items-center justify-center mb-8 border border-gray-700 relative overflow-hidden">
-                <canvas id="visualizer" class="w-full h-full rounded-2xl"></canvas>
-                <div id="vis-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300">
-                    <i data-lucide="activity" class="text-gray-700 w-24 h-24"></i>
-                </div>
-            </div>
-
-            <div class="text-center mb-6">
-                <h2 id="current-title" class="text-2xl font-bold text-white mb-1 truncate">Select a track</h2>
-                <p id="current-artist" class="text-gray-400 text-sm truncate">---</p>
-            </div>
-
-            <div class="mb-6">
-                <input type="range" id="progress-bar" value="0" min="0" max="100" class="w-full mb-2">
-                <div class="flex justify-between text-xs text-gray-500 font-mono">
-                    <span id="current-time">0:00</span>
-                    <span id="total-time">0:00</span>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-center gap-6">
-                <button id="btn-shuffle" class="control-btn" title="Shuffle"><i data-lucide="shuffle" class="w-5 h-5"></i></button>
-                <button id="btn-prev" class="control-btn"><i data-lucide="skip-back" class="w-8 h-8 text-white"></i></button>
+            <div class="w-full md:w-1/2 p-8 flex flex-col justify-between border-b md:border-b-0 md:border-r border-term-border bg-term-card">
                 
-                <button id="btn-play" class="bg-purple-600 hover:bg-purple-500 text-white rounded-full p-4 shadow-[0_0_15px_rgba(139,92,246,0.5)] transition-all transform hover:scale-105">
-                    <i data-lucide="play" id="play-icon" class="w-8 h-8 fill-current ml-1"></i>
-                    <i data-lucide="pause" id="pause-icon" class="w-8 h-8 fill-current hidden"></i>
-                </button>
-                
-                <button id="btn-next" class="control-btn"><i data-lucide="skip-forward" class="w-8 h-8 text-white"></i></button>
-                <button id="btn-repeat" class="control-btn" title="Repeat Mode"><i data-lucide="repeat" class="w-5 h-5"></i></button>
-            </div>
-        </div>
+                <header class="flex justify-between items-center mb-6 border-b border-term-border pb-4">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-widest uppercase">Bass Remix by SHN</h1>
+                        <p class="text-xs text-[#888] tracking-widest uppercase mt-1">Status: Online</p>
+                    </div>
+                    <div class="p-2 border border-term-border bg-term-bg">
+                        <i data-lucide="terminal" class="text-term-text w-6 h-6"></i>
+                    </div>
+                </header>
 
-        <div class="w-full md:w-1/2 bg-gray-900/50 flex flex-col h-[600px] md:h-auto">
-            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/80">
-                <h3 class="font-bold text-gray-300 tracking-wider uppercase text-sm">Tracklist</h3>
-                <span id="track-count" class="text-xs bg-gray-800 text-purple-400 px-3 py-1 rounded-full font-bold">0 Tracks</span>
-            </div>
-            
-            <div id="playlist-container" class="flex-1 overflow-y-auto p-2 scrollbar-hide">
+                <div class="aspect-square w-full max-w-[280px] mx-auto bg-term-bg flex items-center justify-center mb-8 border border-term-border relative overflow-hidden">
+                    <canvas id="visualizer" class="w-full h-full"></canvas>
+                    <div id="vis-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300">
+                        <i data-lucide="radio" class="text-term-border w-24 h-24"></i>
+                    </div>
+                    <div class="absolute top-2 left-2 text-[10px] text-[#888] font-bold">SYS.VISUALIZER</div>
+                    <div class="absolute bottom-2 right-2 text-[10px] text-term-text font-bold flex items-center gap-1 animate-pulse">
+                        <div class="w-2 h-3 bg-term-text"></div> REC
+                    </div>
                 </div>
+
+                <div class="text-center mb-6 p-4 border border-term-border bg-term-bg">
+                    <h2 id="current-title" class="text-lg font-bold text-term-text mb-1 truncate">> Select_a_track</h2>
+                    <p id="current-artist" class="text-[#888] text-sm truncate">---</p>
+                </div>
+
+                <div class="mb-6 px-2">
+                    <input type="range" id="progress-bar" value="0" min="0" max="100" class="w-full mb-3">
+                    <div class="flex justify-between text-xs text-[#888] font-bold">
+                        <span id="current-time">0:00</span>
+                        <span id="total-time">0:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-center gap-6">
+                    <button id="btn-shuffle" class="control-btn" title="Shuffle"><i data-lucide="shuffle" class="w-5 h-5"></i></button>
+                    <button id="btn-prev" class="control-btn"><i data-lucide="skip-back" class="w-6 h-6"></i></button>
+                    
+                    <button id="btn-play" class="bg-term-bg hover:bg-term-hover text-term-text border border-term-text p-4 transition-all">
+                        <i data-lucide="play" id="play-icon" class="w-6 h-6 fill-current ml-1"></i>
+                        <i data-lucide="pause" id="pause-icon" class="w-6 h-6 fill-current hidden"></i>
+                    </button>
+                    
+                    <button id="btn-next" class="control-btn"><i data-lucide="skip-forward" class="w-6 h-6"></i></button>
+                    <button id="btn-repeat" class="control-btn" title="Repeat Mode"><i data-lucide="repeat" class="w-5 h-5"></i></button>
+                </div>
+            </div>
+
+            <div class="w-full md:w-1/2 bg-term-bg flex flex-col h-[500px] md:h-full">
+                <div class="p-6 border-b border-term-border flex justify-between items-center bg-term-card z-10">
+                    <h3 class="font-bold tracking-wider uppercase text-sm flex items-center gap-2 text-term-text">
+                        <i data-lucide="database" class="w-4 h-4"></i> Playlist
+                    </h3>
+                    <span id="track-count" class="text-xs bg-term-bg border border-term-border text-[#888] px-3 py-1 font-bold">0 FILES</span>
+                </div>
+                
+                <div id="playlist-container" class="flex-1 overflow-y-auto p-4 scrollbar-hide bg-term-bg">
+                    </div>
+            </div>
         </div>
     </div>
 
@@ -118,7 +162,7 @@
     <script>
         lucide.createIcons();
 
-        // --- YOUR AUDIO DATA GOES HERE ---
+        // --- YOUR AUDIO DATA ---
         const playlist = [
             { id: 0, title: "As alive as you need me to be", originalArtist: "NIN", src: "AsAlive.m4a" },
             { id: 1, title: "Be with you", originalArtist: "Kimiko", src: "BeWithU.m4a" },
@@ -167,12 +211,11 @@
         let isVisualizerInitialized = false;
 
         function init() {
-            document.getElementById('track-count').innerText = `${playlist.length} Tracks`;
+            document.getElementById('track-count').innerText = `${playlist.length} FILES`;
             renderPlaylist();
             loadTrack(currentTrackIndex, false);
             updateControlStyles();
             
-            // Set canvas exact internal dimensions to match the display size roughly
             canvas.width = 300;
             canvas.height = 300;
         }
@@ -181,16 +224,18 @@
             playlistContainer.innerHTML = '';
             playlist.forEach((track, index) => {
                 const div = document.createElement('div');
-                div.className = `playlist-item flex items-center p-4 mb-2 rounded-xl cursor-pointer text-gray-400 border-l-4 border-transparent group`;
+                div.className = `playlist-item flex items-center p-4 mb-2 cursor-pointer group`;
                 if(index === currentTrackIndex) div.classList.add('active');
                 
                 div.innerHTML = `
-                    <div class="w-8 text-sm font-mono opacity-50">${index + 1}</div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-white font-bold truncate">${track.title}</div>
-                        <div class="text-xs truncate text-gray-500">Orig. ${track.originalArtist}</div>
+                    <div class="w-10 text-xs text-[#888] group-hover:text-term-text transition-colors">[0${index.toString(16).toUpperCase()}]</div>
+                    <div class="flex-1 min-w-0 pr-4">
+                        <div class="text-[0.95rem] truncate text-white group-hover:text-term-text transition-colors">${track.title}</div>
+                        <div class="text-xs text-[#888] truncate transition-colors">> ${track.originalArtist}</div>
                     </div>
-                    <i data-lucide="play-circle" class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                    <div class="w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="play" class="w-4 h-4 text-term-text"></i>
+                    </div>
                 `;
                 
                 div.onclick = () => {
@@ -214,11 +259,10 @@
             });
         }
 
-        // --- AUDIO VISUALIZER SETUP ---
+        // --- AUDIO VISUALIZER (TERMINAL THEME) ---
         function initVisualizer() {
             if (isVisualizerInitialized) return;
             
-            // Browsers require audio context to be created after a user gesture (like clicking play)
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
             analyser = audioCtx.createAnalyser();
@@ -227,19 +271,18 @@
             source.connect(analyser);
             analyser.connect(audioCtx.destination);
             
-            analyser.fftSize = 128; // Determines how many bars we get
+            analyser.fftSize = 128;
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
             
             function draw() {
                 requestAnimationFrame(draw);
-                
-                if(!isPlaying) return; // Save CPU when paused
+                if(!isPlaying) return;
                 
                 analyser.getByteFrequencyData(dataArray);
                 
-                // Clear canvas with a very slight fade effect
-                canvasCtx.fillStyle = 'rgba(17, 24, 39, 0.2)'; 
+                // Draw dark terminal background with slight trail
+                canvasCtx.fillStyle = 'rgba(5, 5, 5, 0.25)'; 
                 canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const barWidth = (canvas.width / bufferLength) * 2;
@@ -249,16 +292,11 @@
                 for(let i = 0; i < bufferLength; i++) {
                     barHeight = dataArray[i];
                     
-                    // Creates a cool gradient from purple to pink based on frequency
-                    const r = barHeight + (25 * (i/bufferLength));
-                    const g = 92;
-                    const b = 246;
+                    // Matrix Green gradient based on frequency
+                    canvasCtx.fillStyle = `rgb(0, ${100 + (155 * (i/bufferLength))}, 65)`;
                     
-                    canvasCtx.fillStyle = `rgb(${r},${g},${b})`;
-                    
-                    // Draw bars from the bottom up
-                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-                    
+                    // Draw blocky bars
+                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
                     x += barWidth + 1;
                 }
             }
@@ -270,8 +308,8 @@
         function loadTrack(index, playInstantly = true) {
             const track = playlist[index];
             audio.src = track.src;
-            titleEl.innerText = track.title;
-            artistEl.innerText = `Orig. ${track.originalArtist}`;
+            titleEl.innerText = `> ${track.title}`;
+            artistEl.innerText = `AUTHOR: ${track.originalArtist}`;
             
             updatePlaylistHighlight();
             
@@ -283,17 +321,16 @@
         }
 
         function playAudio() {
-            initVisualizer(); // Initialize the EQ bars on the first play click
+            initVisualizer();
             if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             
             audio.play();
             isPlaying = true;
             playIcon.classList.add('hidden');
             pauseIcon.classList.remove('hidden');
-            visPlaceholder.classList.add('opacity-0'); // Hide the placeholder icon
+            visPlaceholder.classList.add('opacity-0');
             
-            // Clear canvas instantly when playing starts so it doesn't look messy
-            canvasCtx.fillStyle = 'rgb(17, 24, 39)';
+            canvasCtx.fillStyle = '#050505';
             canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
@@ -302,7 +339,7 @@
             isPlaying = false;
             playIcon.classList.remove('hidden');
             pauseIcon.classList.add('hidden');
-            visPlaceholder.classList.remove('opacity-0'); // Show the placeholder icon again
+            visPlaceholder.classList.remove('opacity-0');
         }
 
         function togglePlay() {
@@ -361,16 +398,17 @@
         });
 
         function updateControlStyles() {
-            if (isShuffle) shuffleBtn.classList.add('active', 'text-purple-400');
-            else shuffleBtn.classList.remove('active', 'text-purple-400');
+            if (isShuffle) shuffleBtn.classList.add('active');
+            else shuffleBtn.classList.remove('active');
 
-            repeatBtn.classList.remove('text-purple-400', 'text-purple-600');
+            repeatBtn.classList.remove('active', 'text-term-text');
             if (repeatMode === 1) {
-                repeatBtn.classList.add('active', 'text-purple-400');
+                repeatBtn.classList.add('active');
                 repeatBtn.innerHTML = '<i data-lucide="repeat" class="w-5 h-5"></i>';
             } else if (repeatMode === 2) {
-                repeatBtn.classList.add('active', 'text-purple-600');
-                repeatBtn.innerHTML = '<i data-lucide="repeat-1" class="w-5 h-5"></i>';
+                repeatBtn.classList.add('active');
+                // Use stroke to make repeat-1 bolder
+                repeatBtn.innerHTML = '<i data-lucide="repeat-1" class="w-5 h-5" style="stroke-width: 3px;"></i>';
             } else {
                 repeatBtn.classList.remove('active');
                 repeatBtn.innerHTML = '<i data-lucide="repeat" class="w-5 h-5"></i>';
@@ -403,18 +441,5 @@
 
         init();
     </script>
-
-    <style>
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
 </body>
 </html>
-
-
-
-
-
-
-
-
