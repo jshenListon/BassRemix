@@ -6,6 +6,7 @@
     <title>Bass Remix by SHN</title>
     
     <link rel="stylesheet" href="/style.css">
+    <link rel="manifest" href="/manifest.json">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -100,9 +101,9 @@
                         <h1 class="text-2xl font-bold tracking-widest uppercase">Bass Remix by SHN</h1>
                         <p class="text-xs text-[#888] tracking-widest uppercase mt-1">Status: Online</p>
                     </div>
-                    <div class="p-2 border border-term-border bg-term-bg">
-                        <i data-lucide="terminal" class="text-term-text w-6 h-6"></i>
-                    </div>
+                    <button id="btn-share" class="p-2 border border-term-border bg-term-bg hover:bg-term-hover hover:border-term-text transition-colors cursor-pointer group">
+                        <i data-lucide="share-2" class="text-[#888] group-hover:text-term-text w-6 h-6 transition-colors"></i>
+                    </button>
                 </header>
 
                 <div class="aspect-square w-full max-w-[280px] mx-auto bg-term-bg flex items-center justify-center mb-8 border border-term-border relative overflow-hidden">
@@ -110,7 +111,9 @@
                     <div id="vis-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300">
                         <i data-lucide="radio" class="text-term-border w-24 h-24"></i>
                     </div>
-                    <div class="absolute top-2 left-2 text-[10px] text-[#888] font-bold">SYS.VISUALIZER</div>
+                    <button id="btn-vis-mode" class="absolute top-2 left-2 text-[10px] text-[#888] font-bold hover:text-term-text transition-colors z-10 cursor-pointer">
+                        [MODE: FREQ]
+                    </button>
                     <div class="absolute bottom-2 right-2 text-[10px] text-term-text font-bold flex items-center gap-1 animate-pulse">
                         <div class="w-2 h-3 bg-term-text"></div> REC
                     </div>
@@ -152,7 +155,7 @@
                 </div>
                 
                 <div id="playlist-container" class="flex-1 overflow-y-auto p-4 scrollbar-hide bg-term-bg">
-                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -218,6 +221,16 @@
         const canvas = document.getElementById('visualizer');
         const canvasCtx = canvas.getContext('2d');
         const visPlaceholder = document.getElementById('vis-placeholder');
+        
+        // NEW: Visualizer Mode Controls
+        let visMode = 0; // 0 = FREQ, 1 = WAVE, 2 = PULSE
+        const visModeBtn = document.getElementById('btn-vis-mode');
+        const visNames = ['FREQ', 'WAVE', 'PULSE'];
+
+        visModeBtn.addEventListener('click', () => {
+            visMode = (visMode + 1) % 3;
+            visModeBtn.innerText = `[MODE: ${visNames[visMode]}]`;
+        });
         
         let audioCtx;
         let analyser;
@@ -293,25 +306,55 @@
                 requestAnimationFrame(draw);
                 if(!isPlaying) return;
                 
-                analyser.getByteFrequencyData(dataArray);
-                
                 // Draw dark terminal background with slight trail
                 canvasCtx.fillStyle = 'rgba(5, 5, 5, 0.25)'; 
                 canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                const barWidth = (canvas.width / bufferLength) * 2;
-                let barHeight;
-                let x = 0;
-                
-                for(let i = 0; i < bufferLength; i++) {
-                    barHeight = dataArray[i];
+
+                if (visMode === 0) {
+                    // --- MODE 0: FREQUENCY BARS ---
+                    analyser.getByteFrequencyData(dataArray);
+                    const barWidth = (canvas.width / bufferLength) * 2;
+                    let x = 0;
+                    for(let i = 0; i < bufferLength; i++) {
+                        let barHeight = dataArray[i];
+                        canvasCtx.fillStyle = `rgb(0, ${100 + (155 * (i/bufferLength))}, 65)`;
+                        canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                        x += barWidth + 1;
+                    }
+                } 
+                else if (visMode === 1) {
+                    // --- MODE 1: WAVEFORM (Oscilloscope) ---
+                    analyser.getByteTimeDomainData(dataArray);
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.strokeStyle = '#00ff41';
+                    canvasCtx.beginPath();
+                    const sliceWidth = canvas.width * 1.0 / bufferLength;
+                    let x = 0;
+                    for(let i = 0; i < bufferLength; i++) {
+                        const v = dataArray[i] / 128.0;
+                        const y = v * canvas.height / 2;
+                        if(i === 0) canvasCtx.moveTo(x, y);
+                        else canvasCtx.lineTo(x, y);
+                        x += sliceWidth;
+                    }
+                    canvasCtx.lineTo(canvas.width, canvas.height / 2);
+                    canvasCtx.stroke();
+                }
+                else if (visMode === 2) {
+                    // --- MODE 2: BASS PULSE ---
+                    analyser.getByteFrequencyData(dataArray);
+                    let bassSum = 0;
+                    for(let i = 0; i < 10; i++) bassSum += dataArray[i];
+                    let avgBass = bassSum / 10;
                     
-                    // Matrix Green gradient based on frequency
-                    canvasCtx.fillStyle = `rgb(0, ${100 + (155 * (i/bufferLength))}, 65)`;
-                    
-                    // Draw blocky bars
-                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
-                    x += barWidth + 1;
+                    let radius = (avgBass / 255) * (canvas.width / 2);
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(canvas.width/2, canvas.height/2, radius, 0, 2 * Math.PI);
+                    canvasCtx.fillStyle = `rgba(0, 255, 65, ${avgBass/255})`;
+                    canvasCtx.fill();
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.strokeStyle = '#00ff41';
+                    canvasCtx.stroke();
                 }
             }
             
@@ -324,6 +367,22 @@
             audio.src = track.src;
             titleEl.innerText = `> ${track.title}`;
             artistEl.innerText = `AUTHOR: ${track.originalArtist}`;
+
+            // --- NEW MEDIA SESSION CODE (For lock screen and background audio) ---
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.title,
+                    artist: track.originalArtist,
+                    album: 'Bass Remix by SHN',
+                    // Assuming you'll add an icon-512.png to your repo for the app
+                    artwork: [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }] 
+                });
+
+                navigator.mediaSession.setActionHandler('play', playAudio);
+                navigator.mediaSession.setActionHandler('pause', pauseAudio);
+                navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+                navigator.mediaSession.setActionHandler('nexttrack', playNext);
+            }
             
             updatePlaylistHighlight();
             
@@ -421,7 +480,6 @@
                 repeatBtn.innerHTML = '<i data-lucide="repeat" class="w-5 h-5"></i>';
             } else if (repeatMode === 2) {
                 repeatBtn.classList.add('active');
-                // Use stroke to make repeat-1 bolder
                 repeatBtn.innerHTML = '<i data-lucide="repeat-1" class="w-5 h-5" style="stroke-width: 3px;"></i>';
             } else {
                 repeatBtn.classList.remove('active');
@@ -453,10 +511,28 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
 
+        // --- NEW SOCIAL SHARE LISTENER ---
+        document.getElementById('btn-share').addEventListener('click', async () => {
+            const currentTrack = playlist[currentTrackIndex];
+            const shareData = {
+                title: 'Bass Remix by SHN',
+                text: `Currently listening to: ${currentTrack.title} by ${currentTrack.originalArtist} on Bass Remix by SHN!`,
+                url: window.location.href // Shares your website URL
+            };
+
+            try {
+                if (navigator.share) {
+                    await navigator.share(shareData);
+                } else {
+                    navigator.clipboard.writeText(`${shareData.text} \n${shareData.url}`);
+                    alert("Track info copied to clipboard!");
+                }
+            } catch (err) {
+                console.error('Error sharing:', err);
+            }
+        });
+
         init();
     </script>
 </body>
 </html>
-
-
-
