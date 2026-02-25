@@ -31,7 +31,6 @@
     </script>
 
     <style>
-        /* Override Tailwind body to ensure style.css compatibility */
         body {
             background-color: var(--bg, #050505);
             color: var(--text, #00ff41);
@@ -46,7 +45,6 @@
 
         a { text-decoration: none; color: inherit; }
 
-        /* Terminal Custom Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
@@ -57,7 +55,7 @@
             width: 100%; height: 4px; cursor: pointer; background: var(--border, #333); 
         }
         input[type=range]::-webkit-slider-thumb {
-            height: 16px; width: 8px; background: var(--text, #00ff41); /* Blocky terminal cursor look */
+            height: 16px; width: 8px; background: var(--text, #00ff41);
             cursor: pointer;
             -webkit-appearance: none;
             margin-top: -6px; 
@@ -106,7 +104,7 @@
                     </button>
                 </header>
 
-                <div class="aspect-square w-full max-w-[280px] mx-auto bg-term-bg flex items-center justify-center mb-8 border border-term-border relative overflow-hidden">
+                <div class="aspect-square w-full max-w-[280px] mx-auto bg-term-bg flex items-center justify-center mb-6 border border-term-border relative overflow-hidden">
                     <canvas id="visualizer" class="w-full h-full"></canvas>
                     <div id="vis-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300">
                         <i data-lucide="radio" class="text-term-border w-24 h-24"></i>
@@ -119,9 +117,15 @@
                     </div>
                 </div>
 
-                <div class="text-center mb-6 p-4 border border-term-border bg-term-bg">
-                    <h2 id="current-title" class="text-lg font-bold text-term-text mb-1 truncate">> Select_a_track</h2>
-                    <p id="current-artist" class="text-[#888] text-sm truncate">---</p>
+                <div class="flex items-center gap-4 mb-6 p-4 border border-term-border bg-term-bg">
+                    <div class="w-16 h-16 border border-term-border flex-shrink-0 bg-[#050505]">
+                        <img id="album-cover" src="" class="w-full h-full object-cover mix-blend-screen opacity-90">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 id="current-title" class="text-lg font-bold text-term-text mb-1 truncate">> Select_a_track</h2>
+                        <p id="current-artist" class="text-[#888] text-sm truncate">---</p>
+                        <div id="current-album-tag" class="inline-block mt-1 px-2 py-0.5 border border-[#333] text-[10px] text-term-text tracking-widest bg-term-hover">---</div>
+                    </div>
                 </div>
 
                 <div class="mb-6 px-2">
@@ -147,11 +151,18 @@
             </div>
 
             <div class="w-full md:w-1/2 bg-term-bg flex flex-col h-[500px] md:h-full">
-                <div class="p-6 border-b border-term-border flex justify-between items-center bg-term-card z-10">
-                    <h3 class="font-bold tracking-wider uppercase text-sm flex items-center gap-2 text-term-text">
-                        <i data-lucide="database" class="w-4 h-4"></i> Playlist
-                    </h3>
-                    <span id="track-count" class="text-xs bg-term-bg border border-term-border text-[#888] px-3 py-1 font-bold">0 FILES</span>
+                <div class="p-6 border-b border-term-border flex flex-col gap-4 bg-term-card z-10">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold tracking-wider uppercase text-sm flex items-center gap-2 text-term-text">
+                            <i data-lucide="database" class="w-4 h-4"></i> Databanks
+                        </h3>
+                        <span id="track-count" class="text-xs bg-term-bg border border-term-border text-[#888] px-3 py-1 font-bold">0 FILES</span>
+                    </div>
+                    <div class="flex gap-2 text-xs font-bold">
+                        <button id="btn-filter-all" class="filter-btn flex-1 py-1.5 border border-term-text bg-term-hover text-term-text transition-colors cursor-pointer" onclick="setAlbumFilter('ALL')">[ ALL ]</button>
+                        <button id="btn-filter-25" class="filter-btn flex-1 py-1.5 border border-term-border text-[#888] hover:text-term-text transition-colors cursor-pointer" onclick="setAlbumFilter('2025')">[ 2025 ]</button>
+                        <button id="btn-filter-24" class="filter-btn flex-1 py-1.5 border border-term-border text-[#888] hover:text-term-text transition-colors cursor-pointer" onclick="setAlbumFilter('2024')">[ 2024 ]</button>
+                    </div>
                 </div>
                 
                 <div id="playlist-container" class="flex-1 overflow-y-auto p-4 scrollbar-hide bg-term-bg">
@@ -165,42 +176,50 @@
     <script>
         lucide.createIcons();
 
-        // --- YOUR AUDIO DATA ---
-        const playlist = [
-            { id: 0, title: "As alive as you need me to be", originalArtist: "NIN", src: "AsAlive.m4a" },
-            { id: 1, title: "Be with you", originalArtist: "Kimiko", src: "BeWithU.m4a" },
-            { id: 2, title: "Now and then", originalArtist: "Akera Sky", src: "NowAndThen.m4a" },
-            { id: 3, title: "Drunk", originalArtist: "Unknown", src: "Drunk.m4a" },
-            { id: 4, title: "Toxic Luv", originalArtist: "Haruno 春野", src: "ToxicLuv.mp3" },
-            { id: 5, title: "Holy", originalArtist: "Lexie Liu", src: "Holy.m4a" },
-            { id: 6, title: "Juicy", originalArtist: "Jordan Ward", src: "Juicy.mp3" },
-            { id: 7, title: "Moments", originalArtist: "FKJ", src: "Moments.mp3" },
-            { id: 8, title: "Novio No", originalArtist: "Sech", src: "NovioNo.mp3" },
-            { id: 9, title: "On the low", originalArtist: "Tiwa Savage", src: "OnTheLow.mp3" },
-            { id: 10, title: "Kimi", originalArtist: "Moad Edge", src: "Kimi.m4a" },
-            { id: 11, title: "Less of you", originalArtist: "keshi", src: "LessOfU.m4a" },
-            { id: 12, title: "One eye open", originalArtist: "Mimi Webb", src: "OneEyeOpen.m4a" },
-            { id: 13, title: "One last time", originalArtist: "Fiji Blue", src: "OneLastTime.m4a" },
-            { id: 14, title: "Save me", originalArtist: "Thousand Below", src: "SaveMe.mp3" },
-            { id: 15, title: "Set me free", originalArtist: "Martin Garrix & Arcando", src: "SetMeFree.mp3" },
-            { id: 16, title: "Watch out", originalArtist: "Kardi", src: "WatchOut.mp3" },
-            { id: 17, title: "Remedy", originalArtist: "Maliya", src: "Remedy.m4a" },
-            { id: 18, title: "老子写一首悲歌", originalArtist: "河南说唱之神", src: "SadSong.m4a" },
-            { id: 19, title: "Temporary", originalArtist: "6Lack", src: "Temporary.m4a" },
-            { id: 20, title: "Hippo", originalArtist: "Gayla Peevey", src: "Hippo.m4a" },
-            { id: 21, title: "心经", originalArtist: "药师寺宽邦", src: "HeartStra.m4a" },
-            { id: 22, title: "Havana covered by Rebecca Black & KHS", originalArtist: "Camila Cabello", src: "Havana.m4a" },
-            { id: 23, title: "Faster than me", originalArtist: "iri", src: "FasterThanMe.m4a" },
-            { id: 24, title: "Dancin", originalArtist: "Aaron Smith", src: "Dancin.m4a" },
-            { id: 25, title: "Brother", originalArtist: "Leah Dou", src: "Brother.m4a" },
-            { id: 26, title: "Back to you", originalArtist: "Rose", src: "Back2U.m4a" },
-            { id: 27, title: "夕阳恋歌", originalArtist: "Lexie Liu", src: "IWannaTellU.m4a" },
-            { id: 28, title: "We've been loving in silence", originalArtist: "MARO", src: "WeVBeen.m4a" },
-            { id: 29, title: "Something about us", originalArtist: "Daft Punk", src: "SomethingAboutUs.m4a" },
-            { id: 30, title: "Isn't it Obvious", originalArtist: "Alessia Cara", src: "Obvious.m4a" },
-            { id: 31, title: "Lose yourself", originalArtist: "Grano Apes", src: "LoseYourSelf.m4a" }
+        // --- Custom SVG Album Covers (Terminal Theme) ---
+        const cover2025 = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23050505'/><path d='M10,80 L50,20 L90,80 Z' fill='none' stroke='%2300ff41' stroke-width='3'/><path d='M0,50 L100,50 M50,0 L50,100' stroke='%23003300' stroke-width='1'/><text x='50' y='65' font-family='monospace' font-size='16' fill='%2300ff41' text-anchor='middle' font-weight='bold'>2025</text><text x='50' y='95' font-family='monospace' font-size='8' fill='%23888' text-anchor='middle' letter-spacing='2'>NEXUS</text></svg>";
+        const cover2024 = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23050505'/><circle cx='50' cy='50' r='35' fill='none' stroke='%23003300' stroke-width='4'/><circle cx='50' cy='50' r='25' fill='none' stroke='%2300ff41' stroke-width='2' stroke-dasharray='5 3'/><text x='50' y='55' font-family='monospace' font-size='16' fill='%2300ff41' text-anchor='middle' font-weight='bold'>2024</text><text x='50' y='95' font-family='monospace' font-size='8' fill='%23888' text-anchor='middle' letter-spacing='2'>VAULT</text></svg>";
+
+        // --- MASTER PLAYLIST DATA ---
+        const masterPlaylist = [
+            // 2025 Album (IDs 0 - 18)
+            { id: 0, title: "As alive as you need me to be", originalArtist: "NIN", src: "AsAlive.m4a", album: "2025", cover: cover2025 },
+            { id: 1, title: "Be with you", originalArtist: "Kimiko", src: "BeWithU.m4a", album: "2025", cover: cover2025 },
+            { id: 2, title: "Now and then", originalArtist: "Akera Sky", src: "NowAndThen.m4a", album: "2025", cover: cover2025 },
+            { id: 3, title: "Drunk", originalArtist: "Unknown", src: "Drunk.m4a", album: "2025", cover: cover2025 },
+            { id: 4, title: "Toxic Luv", originalArtist: "Haruno 春野", src: "ToxicLuv.mp3", album: "2025", cover: cover2025 },
+            { id: 5, title: "Holy", originalArtist: "Lexie Liu", src: "Holy.m4a", album: "2025", cover: cover2025 },
+            { id: 6, title: "Juicy", originalArtist: "Jordan Ward", src: "Juicy.mp3", album: "2025", cover: cover2025 },
+            { id: 7, title: "Moments", originalArtist: "FKJ", src: "Moments.mp3", album: "2025", cover: cover2025 },
+            { id: 8, title: "Novio No", originalArtist: "Sech", src: "NovioNo.mp3", album: "2025", cover: cover2025 },
+            { id: 9, title: "On the low", originalArtist: "Tiwa Savage", src: "OnTheLow.mp3", album: "2025", cover: cover2025 },
+            { id: 10, title: "Kimi", originalArtist: "Moad Edge", src: "Kimi.m4a", album: "2025", cover: cover2025 },
+            { id: 11, title: "Less of you", originalArtist: "keshi", src: "LessOfU.m4a", album: "2025", cover: cover2025 },
+            { id: 12, title: "One eye open", originalArtist: "Mimi Webb", src: "OneEyeOpen.m4a", album: "2025", cover: cover2025 },
+            { id: 13, title: "One last time", originalArtist: "Fiji Blue", src: "OneLastTime.m4a", album: "2025", cover: cover2025 },
+            { id: 14, title: "Save me", originalArtist: "Thousand Below", src: "SaveMe.mp3", album: "2025", cover: cover2025 },
+            { id: 15, title: "Set me free", originalArtist: "Martin Garrix & Arcando", src: "SetMeFree.mp3", album: "2025", cover: cover2025 },
+            { id: 16, title: "Watch out", originalArtist: "Kardi", src: "WatchOut.mp3", album: "2025", cover: cover2025 },
+            { id: 17, title: "Remedy", originalArtist: "Maliya", src: "Remedy.m4a", album: "2025", cover: cover2025 },
+            { id: 18, title: "老子写一首悲歌", originalArtist: "河南说唱之神", src: "SadSong.m4a", album: "2025", cover: cover2025 },
+            
+            // 2024 Album (IDs 19 - 31)
+            { id: 19, title: "Temporary", originalArtist: "6Lack", src: "Temporary.m4a", album: "2024", cover: cover2024 },
+            { id: 20, title: "Hippo", originalArtist: "Gayla Peevey", src: "Hippo.m4a", album: "2024", cover: cover2024 },
+            { id: 21, title: "心经", originalArtist: "药师寺宽邦", src: "HeartStra.m4a", album: "2024", cover: cover2024 },
+            { id: 22, title: "Havana covered by Rebecca Black & KHS", originalArtist: "Camila Cabello", src: "Havana.m4a", album: "2024", cover: cover2024 },
+            { id: 23, title: "Faster than me", originalArtist: "iri", src: "FasterThanMe.m4a", album: "2024", cover: cover2024 },
+            { id: 24, title: "Dancin", originalArtist: "Aaron Smith", src: "Dancin.m4a", album: "2024", cover: cover2024 },
+            { id: 25, title: "Brother", originalArtist: "Leah Dou", src: "Brother.m4a", album: "2024", cover: cover2024 },
+            { id: 26, title: "Back to you", originalArtist: "Rose", src: "Back2U.m4a", album: "2024", cover: cover2024 },
+            { id: 27, title: "夕阳恋歌", originalArtist: "Lexie Liu", src: "IWannaTellU.m4a", album: "2024", cover: cover2024 },
+            { id: 28, title: "We've been loving in silence", originalArtist: "MARO", src: "WeVBeen.m4a", album: "2024", cover: cover2024 },
+            { id: 29, title: "Something about us", originalArtist: "Daft Punk", src: "SomethingAboutUs.m4a", album: "2024", cover: cover2024 },
+            { id: 30, title: "Isn't it Obvious", originalArtist: "Alessia Cara", src: "Obvious.m4a", album: "2024", cover: cover2024 },
+            { id: 31, title: "Lose yourself", originalArtist: "Grano Apes", src: "LoseYourSelf.m4a", album: "2024", cover: cover2024 }
         ];
 
+        let currentPlaylist = [...masterPlaylist];
         let currentTrackIndex = 0;
         let isPlaying = false;
         let isShuffle = false;
@@ -219,6 +238,8 @@
         const totalTimeEl = document.getElementById('total-time');
         const titleEl = document.getElementById('current-title');
         const artistEl = document.getElementById('current-artist');
+        const albumCoverEl = document.getElementById('album-cover');
+        const albumTagEl = document.getElementById('current-album-tag');
         const playlistContainer = document.getElementById('playlist-container');
         
         // Visualizer Elements
@@ -226,7 +247,6 @@
         const canvasCtx = canvas.getContext('2d');
         const visPlaceholder = document.getElementById('vis-placeholder');
         
-        // NEW: Visualizer Mode Controls
         let visMode = 0; // 0 = FREQ, 1 = WAVE, 2 = PULSE
         const visModeBtn = document.getElementById('btn-vis-mode');
         const visNames = ['FREQ', 'WAVE', 'PULSE'];
@@ -242,18 +262,50 @@
         let isVisualizerInitialized = false;
 
         function init() {
-            document.getElementById('track-count').innerText = `${playlist.length} FILES`;
-            renderPlaylist();
-            loadTrack(currentTrackIndex, false);
+            setAlbumFilter('ALL');
             updateControlStyles();
-            
             canvas.width = 300;
             canvas.height = 300;
         }
 
+        // --- NEW: Album Filter Logic ---
+        function setAlbumFilter(filterType) {
+            const playingTrackId = currentPlaylist[currentTrackIndex]?.id;
+            
+            if (filterType === 'ALL') {
+                currentPlaylist = [...masterPlaylist];
+            } else {
+                currentPlaylist = masterPlaylist.filter(t => t.album === filterType);
+            }
+
+            // Update UI Buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('border-term-text', 'bg-term-hover', 'text-term-text');
+                btn.classList.add('border-term-border', 'text-[#888]');
+            });
+            const activeBtn = filterType === 'ALL' ? 'btn-filter-all' : (filterType === '2025' ? 'btn-filter-25' : 'btn-filter-24');
+            const targetBtn = document.getElementById(activeBtn);
+            targetBtn.classList.remove('border-term-border', 'text-[#888]');
+            targetBtn.classList.add('border-term-text', 'bg-term-hover', 'text-term-text');
+
+            // Try to keep playing the same song if it exists in the new filter
+            let newIndex = currentPlaylist.findIndex(t => t.id === playingTrackId);
+            
+            document.getElementById('track-count').innerText = `${currentPlaylist.length} FILES`;
+            renderPlaylist();
+
+            if (newIndex !== -1) {
+                currentTrackIndex = newIndex;
+                updatePlaylistHighlight();
+            } else {
+                currentTrackIndex = 0;
+                loadTrack(currentTrackIndex, isPlaying);
+            }
+        }
+
         function renderPlaylist() {
             playlistContainer.innerHTML = '';
-            playlist.forEach((track, index) => {
+            currentPlaylist.forEach((track, index) => {
                 const div = document.createElement('div');
                 div.className = `playlist-item flex items-center p-4 mb-2 cursor-pointer group`;
                 if(index === currentTrackIndex) div.classList.add('active');
@@ -290,7 +342,6 @@
             });
         }
 
-        // --- AUDIO VISUALIZER (TERMINAL THEME) ---
         function initVisualizer() {
             if (isVisualizerInitialized) return;
             
@@ -309,15 +360,12 @@
             function draw() {
                 requestAnimationFrame(draw);
                 
-                // ADDED: Stop drawing if paused OR if the app is in the background/screen locked
                 if(!isPlaying || document.hidden) return; 
                 
-                // Draw dark terminal background with slight trail
                 canvasCtx.fillStyle = 'rgba(5, 5, 5, 0.25)'; 
                 canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
                 if (visMode === 0) {
-                    // --- MODE 0: FREQUENCY BARS ---
                     analyser.getByteFrequencyData(dataArray);
                     const barWidth = (canvas.width / bufferLength) * 2;
                     let x = 0;
@@ -329,7 +377,6 @@
                     }
                 } 
                 else if (visMode === 1) {
-                    // --- MODE 1: WAVEFORM (Oscilloscope) ---
                     analyser.getByteTimeDomainData(dataArray);
                     canvasCtx.lineWidth = 2;
                     canvasCtx.strokeStyle = '#00ff41';
@@ -347,7 +394,6 @@
                     canvasCtx.stroke();
                 }
                 else if (visMode === 2) {
-                    // --- MODE 2: BASS PULSE ---
                     analyser.getByteFrequencyData(dataArray);
                     let bassSum = 0;
                     for(let i = 0; i < 10; i++) bassSum += dataArray[i];
@@ -369,19 +415,23 @@
         }
 
         function loadTrack(index, playInstantly = true) {
-            const track = playlist[index];
+            const track = currentPlaylist[index];
+            if (!track) return;
+
             audio.src = track.src;
             titleEl.innerText = `> ${track.title}`;
             artistEl.innerText = `AUTHOR: ${track.originalArtist}`;
+            
+            // Update Cover Art & Album Tag
+            albumCoverEl.src = track.cover;
+            albumTagEl.innerText = track.album === "2025" ? "NEXUS [25]" : "VAULT [24]";
 
-            // --- MEDIA SESSION CODE (For lock screen and background audio) ---
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: track.title,
                     artist: track.originalArtist,
-                    album: 'Bass Remix by SHN',
-                    // Assuming you'll add an icon-512.png to your repo for the app
-                    artwork: [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }] 
+                    album: track.album === "2025" ? 'Bass Remix: NEXUS' : 'Bass Remix: VAULT',
+                    artwork: [{ src: track.cover, sizes: '512x512', type: 'image/svg+xml' }] 
                 });
 
                 navigator.mediaSession.setActionHandler('play', playAudio);
@@ -403,7 +453,6 @@
             initVisualizer();
             if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             
-            // ADDED: Catch the play promise to handle background loading safely
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
@@ -415,13 +464,12 @@
                     canvasCtx.fillStyle = '#050505';
                     canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // Tell Android the app is actively playing
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'playing';
                     }
                 }).catch(error => {
                     console.warn("Background autoplay prevented by OS:", error);
-                    pauseAudio(); // Reset UI if OS blocks it
+                    pauseAudio(); 
                 });
             }
         }
@@ -433,7 +481,6 @@
             pauseIcon.classList.add('hidden');
             visPlaceholder.classList.remove('opacity-0');
 
-            // ADDED: Tell Android the app is paused
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = 'paused';
             }
@@ -447,13 +494,13 @@
         function playNext() {
             if (isShuffle) {
                 let newIndex = currentTrackIndex;
-                while (newIndex === currentTrackIndex && playlist.length > 1) {
-                    newIndex = Math.floor(Math.random() * playlist.length);
+                while (newIndex === currentTrackIndex && currentPlaylist.length > 1) {
+                    newIndex = Math.floor(Math.random() * currentPlaylist.length);
                 }
                 currentTrackIndex = newIndex;
             } else {
                 currentTrackIndex++;
-                if (currentTrackIndex >= playlist.length) currentTrackIndex = 0;
+                if (currentTrackIndex >= currentPlaylist.length) currentTrackIndex = 0;
             }
             loadTrack(currentTrackIndex, true);
         }
@@ -463,7 +510,7 @@
                 audio.currentTime = 0;
             } else {
                 currentTrackIndex--;
-                if (currentTrackIndex < 0) currentTrackIndex = playlist.length - 1;
+                if (currentTrackIndex < 0) currentTrackIndex = currentPlaylist.length - 1;
                 loadTrack(currentTrackIndex, true);
             }
         }
@@ -475,7 +522,7 @@
             } else if (repeatMode === 1 || isShuffle) {
                 playNext();
             } else {
-                if (currentTrackIndex < playlist.length - 1) playNext();
+                if (currentTrackIndex < currentPlaylist.length - 1) playNext();
                 else pauseAudio();
             }
         });
@@ -535,13 +582,12 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
 
-        // --- SOCIAL SHARE LISTENER ---
         document.getElementById('btn-share').addEventListener('click', async () => {
-            const currentTrack = playlist[currentTrackIndex];
+            const currentTrack = currentPlaylist[currentTrackIndex];
             const shareData = {
                 title: 'Bass Remix by SHN',
                 text: `Currently listening to: ${currentTrack.title} by ${currentTrack.originalArtist} on Bass Remix by SHN!`,
-                url: window.location.href // Shares your website URL
+                url: window.location.href 
             };
 
             try {
