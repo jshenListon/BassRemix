@@ -160,7 +160,7 @@
         </div>
     </div>
 
-    <audio id="audio-player" crossorigin="anonymous"></audio>
+    <audio id="audio-player" crossorigin="anonymous" preload="auto"></audio>
 
     <script>
         lucide.createIcons();
@@ -308,7 +308,9 @@
             
             function draw() {
                 requestAnimationFrame(draw);
-                if(!isPlaying) return;
+                
+                // ADDED: Stop drawing if paused OR if the app is in the background/screen locked
+                if(!isPlaying || document.hidden) return; 
                 
                 // Draw dark terminal background with slight trail
                 canvasCtx.fillStyle = 'rgba(5, 5, 5, 0.25)'; 
@@ -372,7 +374,7 @@
             titleEl.innerText = `> ${track.title}`;
             artistEl.innerText = `AUTHOR: ${track.originalArtist}`;
 
-            // --- NEW MEDIA SESSION CODE (For lock screen and background audio) ---
+            // --- MEDIA SESSION CODE (For lock screen and background audio) ---
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: track.title,
@@ -401,14 +403,27 @@
             initVisualizer();
             if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             
-            audio.play();
-            isPlaying = true;
-            playIcon.classList.add('hidden');
-            pauseIcon.classList.remove('hidden');
-            visPlaceholder.classList.add('opacity-0');
-            
-            canvasCtx.fillStyle = '#050505';
-            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            // ADDED: Catch the play promise to handle background loading safely
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isPlaying = true;
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                    visPlaceholder.classList.add('opacity-0');
+                    
+                    canvasCtx.fillStyle = '#050505';
+                    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Tell Android the app is actively playing
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
+                }).catch(error => {
+                    console.warn("Background autoplay prevented by OS:", error);
+                    pauseAudio(); // Reset UI if OS blocks it
+                });
+            }
         }
 
         function pauseAudio() {
@@ -417,6 +432,11 @@
             playIcon.classList.remove('hidden');
             pauseIcon.classList.add('hidden');
             visPlaceholder.classList.remove('opacity-0');
+
+            // ADDED: Tell Android the app is paused
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'paused';
+            }
         }
 
         function togglePlay() {
@@ -515,7 +535,7 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
 
-        // --- NEW SOCIAL SHARE LISTENER ---
+        // --- SOCIAL SHARE LISTENER ---
         document.getElementById('btn-share').addEventListener('click', async () => {
             const currentTrack = playlist[currentTrackIndex];
             const shareData = {
@@ -540,4 +560,3 @@
     </script>
 </body>
 </html>
-
